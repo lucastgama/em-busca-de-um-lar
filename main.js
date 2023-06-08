@@ -8,7 +8,7 @@ import { CharacterControls } from "./characterControls";
 let camera, scene, renderer;
 const clock = new THREE.Clock();
 
-var characterControls;
+let characterControls;
 const keysPressed = {};
 
 let mixer;
@@ -26,42 +26,45 @@ function init() {
     1,
     1000
   );
-  camera.position.set(0.1, 2.5, 3.5);
+  camera.position.set(0.1, 3, 4.5);
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa8def0);
   scene.fog = new THREE.Fog(0xa0a0a0, 30, 2000);
 
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
-  hemiLight.position.set(0, 200, 0);
+  hemiLight.position.set(0, 20, 0);
   scene.add(hemiLight);
 
-  const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
-  dirLight.position.set(0, 200, 100);
+  const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+  dirLight.position.set(-60, 100, -10);
   dirLight.castShadow = true;
-  dirLight.shadow.camera.top = 180;
-  dirLight.shadow.camera.bottom = -100;
-  dirLight.shadow.camera.left = -120;
-  dirLight.shadow.camera.right = 120;
+  dirLight.shadow.camera.top = 50;
+  dirLight.shadow.camera.bottom = -50;
+  dirLight.shadow.camera.left = -50;
+  dirLight.shadow.camera.right = 50;
+  dirLight.shadow.camera.near = 0.8;
+  dirLight.shadow.camera.far = 20;
+  dirLight.shadow.mapSize.width = 40;
+  dirLight.shadow.mapSize.height = 40;
   scene.add(dirLight);
 
-  // scene.add( new THREE.CameraHelper( dirLight.shadow.camera ) );
+  scene.add(new THREE.CameraHelper(dirLight.shadow.camera));
 
   // ground
-  const mesh = new THREE.Mesh(
-    new THREE.PlaneGeometry(2000, 2000),
-    new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
-  );
-  mesh.rotation.x = -Math.PI / 2;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
+  // const mesh = new THREE.Mesh(
+  //   new THREE.PlaneGeometry(120, 120,512,512),
+  //   new THREE.MeshPhongMaterial({ color: 0x999999, depthWrite: false })
+  // );
+  // mesh.rotation.x = -Math.PI / 2;
+  // mesh.receiveShadow = true;
+  // scene.add(mesh);
 
-  const grid = new THREE.GridHelper(2000, 200, 0x000000, 0x000000);
-  grid.material.opacity = 0.2;
-  grid.material.transparent = true;
-  scene.add(grid);
+  // const grid = new THREE.GridHelper(120, 120, 0x000000, 0x000000);
+  // grid.material.opacity = 0.2;
+  // grid.material.transparent = true;
+  // scene.add(grid);
 
-  var characterControls;
   const loader = new GLTFLoader();
   loader.load(
     "models/Soldier.glb",
@@ -80,15 +83,39 @@ function init() {
         .forEach((a) => {
           animationsMap.set(a.name, mixer.clipAction(a));
         });
-      console.log(model);
+
       characterControls = new CharacterControls(
         model,
         mixer,
         animationsMap,
         controls,
         camera,
-        "Idle_Character"
+        "Idle"
       );
+    },
+    function (xhr) {
+      console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
+    },
+    function (error) {
+      console.log("An error happened");
+    }
+  );
+
+  //city
+  loader.load(
+    "models/cityChao.glb",
+    function (gltf) {
+      const city = gltf.scene;
+      city.traverse(function (object) {
+        if (object.isMesh) {
+          object.receiveShadow = true;
+          object.castShadow = true;
+        }
+      });
+      city.receiveShadow = true;
+      city.castShadow = true;
+      city.position.set(0, 0, 0);
+      scene.add(city);
     },
     function (xhr) {
       console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
@@ -145,11 +172,12 @@ function onWindowResize() {
 
 function animate() {
   requestAnimationFrame(animate);
-
   const delta = clock.getDelta();
+
   if (characterControls) {
     characterControls.update(delta, keysPressed);
   }
+
   if (mixer) mixer.update(delta);
 
   renderer.render(scene, camera);
